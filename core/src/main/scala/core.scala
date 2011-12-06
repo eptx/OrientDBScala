@@ -6,7 +6,6 @@ import com.orientechnologies.orient.core.db.{ODatabaseRecordThreadLocal, ODataba
 import com.orientechnologies.orient.core.metadata.schema.OType
 import com.orientechnologies.orient.core.metadata.schema.OClass.INDEX_TYPE
 
-
 object `package` {
 
   implicit def dbWrapper[A](db: ODatabaseComplex[A]) = new {

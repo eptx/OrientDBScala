@@ -11,6 +11,11 @@ import com.orientechnologies.orient.core.record.impl.ODocument
 
 import com.orientechnologies.orient.core.db.graph.{OGraphVertex, ODatabaseGraphTx}
 import com.orientechnologies.orient.core.metadata.schema.OType
+import com.orientechnologies.orient.core.sql.functions.OSQLFunctionAbstract
+import com.orientechnologies.orient.core.sql.OSQLEngine
+import com.orientechnologies.orient.core.record.ORecord
+import com.orientechnologies.orient.core.command.OCommandExecutor
+import scala.Double
 
 
 class User(var user:String){
@@ -20,13 +25,14 @@ class User(var user:String){
 
 class FeaturesSpecTest extends FeatureSpec with GivenWhenThen with BeforeAndAfterAll {
   val maxUserCount = 1000
+  //create a doc db on disk
   val db: ODatabaseDocumentTx = new ODatabaseDocumentTx("local:db")
   if (!db.exists) db.create() else db.open("admin", "admin")
-
+   //create an object db in memory
   val objdb: ODatabaseObjectTx = new ODatabaseObjectTx("memory:objdb")
   if (!objdb.exists) objdb.create() else objdb.open("admin", "admin")
 
-
+  //after test cleanup
   override def afterAll(configMap: Map[String, Any]){
     db.delete()
     db.close()
@@ -35,6 +41,7 @@ class FeaturesSpecTest extends FeatureSpec with GivenWhenThen with BeforeAndAfte
     objdb.close()
   }
 
+  //run tests
 	feature("As a Document DB") {
     scenario("Canary is alive") {
       assert(true === true)
@@ -49,6 +56,7 @@ class FeaturesSpecTest extends FeatureSpec with GivenWhenThen with BeforeAndAfte
       (1 to maxUserCount).foreach{i =>
         doc.reset
         doc.setClassName("User")
+        doc.field("id",i)
         doc.field("user","user"+i)
         size += doc.getSize
         doc.save
@@ -66,6 +74,20 @@ class FeaturesSpecTest extends FeatureSpec with GivenWhenThen with BeforeAndAfte
 
 		  assert(result.head.field("user").toString === "user10")
 		}
+
+    scenario("Custom Function") {
+      //add a custom function
+      OSQLEngine.getInstance.registerFunction("multxy", new OSQLFunctionAbstract("multxy",2,2) {
+        def getSyntax = "multxy(x,y)"
+        def execute(iCurrentRecord: ORecord[_], iParameters: Array[Object], iRequester: OCommandExecutor):java.lang.Integer = {
+          iParameters(0).asInstanceOf[Int] * iParameters(1).asInstanceOf[Int]
+        }
+        def aggregateResults = false
+      })
+
+      val result = db.q[ODocument]("select multxy(id,2) as double_id from User where user = 'user10'")
+		  assert(result.head.field("double_id").asInstanceOf[Int] === 20)
+    }
 	}
 
 feature("Works with JSON") {
@@ -166,4 +188,5 @@ feature("Works with JSON") {
 
 	  }
   }
+
 }
