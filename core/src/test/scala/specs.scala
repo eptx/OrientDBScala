@@ -9,10 +9,8 @@ import com.orientechnologies.orient.core.metadata.schema.OClass.INDEX_TYPE
 import com.orientechnologies.orient.core.db.`object`.ODatabaseObjectTx
 import com.orientechnologies.orient.core.record.impl.ODocument
 
-//import Wrapper._
 import com.orientechnologies.orient.core.db.graph.{OGraphVertex, ODatabaseGraphTx}
-import org.scalatest.Assertions._
-import com.orientechnologies.orient.core.metadata.schema.{OClass, OType}
+import com.orientechnologies.orient.core.metadata.schema.OType
 
 
 class User(var user:String){
@@ -33,11 +31,11 @@ class FeaturesSpecTest extends FeatureSpec with GivenWhenThen with BeforeAndAfte
     db.delete()
     db.close()
 
-    //objdb.delete()
-    //objdb.close()
+    objdb.delete()
+    objdb.close()
   }
 
-	feature("OrientDB Document DB") {
+	feature("As a Document DB") {
     scenario("Canary is alive") {
       assert(true === true)
     }
@@ -70,7 +68,37 @@ class FeaturesSpecTest extends FeatureSpec with GivenWhenThen with BeforeAndAfte
 		}
 	}
 
-  feature("OrientDB Object DB") {
+feature("Works with JSON") {
+  val jsondb: ODatabaseDocumentTx = new ODatabaseDocumentTx("memory:jsondb")
+  jsondb.create()
+
+
+    scenario("Insert JSON") {
+      val doc = new ODocument(jsondb)
+      val json = """
+{
+  "gender": {"name": "Male"},
+  "firstName": "Robert",
+  "lastName": "Smith",
+  "account": {"checking": 10, "savings": 1234}
+}
+"""
+      doc.fromJSON(json)
+      doc.setClassName("Person")
+      doc.save
+      assert(jsondb.countClass("Person") === 1)
+    }
+
+    scenario("Search JSON") {
+      val result = jsondb.q[ODocument]("select account[savings] from Person")
+      result.foreach(doc => Console.println(doc))
+
+		  assert(Int.unbox(result.head.field("account")) === 1234)
+		}
+	}
+
+
+  feature("As an Object DB") {
 
     scenario("DB insert "+maxUserCount+" records") {
       objdb.declareIntent(new OIntentMassiveInsert())
@@ -94,7 +122,7 @@ class FeaturesSpecTest extends FeatureSpec with GivenWhenThen with BeforeAndAfte
 		}
 	}
 
-  feature("OrientDB Graph DB") {
+  feature("As a Graph DB") {
 
     scenario("DB insert records") {
 
